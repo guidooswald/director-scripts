@@ -4,7 +4,7 @@
 
 In order to use this bootstrap script, you'll need to configure your deployment to use a
 `javaInstallationStrategy` of `NONE`. This can be done using a configuration file or using the
-Cloudera Director API, as this property is not currently configurable in the UI.
+Cloudera Altus Director API, as this property is not currently configurable in the UI.
 An example of how this would look in a configuration file:
 
 ```
@@ -44,5 +44,5 @@ instances {
 Alternatively, you can copy the contents of the bootstrap script itself and use the `bootstrapScripts`
 property instead.
 
-**NOTE**: The URL in this script refers to CentOS/RHEL 7 and Director 2.7.0. You may need to update the URL
+**NOTE**: The URL in this script refers to CentOS/RHEL 7 and Director 2.8.0. You may need to update the URL
 for CentOS/RHEL 6 depending on what OS your deployment/cluster instances are running.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# (c) Copyright 2015 Cloudera, Inc.
+# (c) Copyright 2018 Cloudera, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,17 +44,35 @@ sudo mkdir -p /opt/cloudera/parcels /opt/cloudera/parcel-repo /opt/cloudera/parc
 PARCEL_NAME="${PARCEL_URL##*/}"
 
 echo "Downloading parcel from $PARCEL_URL"
-sudo curl -s -S "${PARCEL_URL}" -o "/opt/cloudera/parcel-repo/$PARCEL_NAME"
-sudo curl -s -S "${PARCEL_URL}.sha1" -o "/opt/cloudera/parcel-repo/$PARCEL_NAME.sha1"
-sudo cp "/opt/cloudera/parcel-repo/$PARCEL_NAME.sha1" "/opt/cloudera/parcel-repo/$PARCEL_NAME.sha"
-
-echo "Verifying parcel checksum"
-sudo sed "s/$/  ${PARCEL_NAME}/" "/opt/cloudera/parcel-repo/$PARCEL_NAME.sha1" |
-  sudo tee "/opt/cloudera/parcel-repo/$PARCEL_NAME.shacheck" > /dev/null
-if ! eval "cd /opt/cloudera/parcel-repo && sha1sum -c \"$PARCEL_NAME.shacheck\""; then
-  echo "Checksum verification failed"
+sudo curl -L -s -S "${PARCEL_URL}" -o "/opt/cloudera/parcel-repo/$PARCEL_NAME"
+if sudo curl -L -s -S -f "${PARCEL_URL}.sha1" -o "/opt/cloudera/parcel-repo/$PARCEL_NAME.sha1"; then
+  CHECKSUM_TYPE=sha1
+elif sudo curl -L -s -S -f "${PARCEL_URL}.sha256" -o "/opt/cloudera/parcel-repo/$PARCEL_NAME.sha256"; then
+  CHECKSUM_TYPE=sha256
+else
+  echo "Failed to find parcel checksum file for $PARCEL_URL"
   exit 1
 fi
+
+sudo cp "/opt/cloudera/parcel-repo/$PARCEL_NAME.${CHECKSUM_TYPE}" "/opt/cloudera/parcel-repo/$PARCEL_NAME.sha"
+
+echo "Verifying parcel ${CHECKSUM_TYPE} checksum"
+sudo sed "s/$/  ${PARCEL_NAME}/" "/opt/cloudera/parcel-repo/$PARCEL_NAME.${CHECKSUM_TYPE}" |
+  sudo tee "/opt/cloudera/parcel-repo/$PARCEL_NAME.shacheck" > /dev/null
+case $CHECKSUM_TYPE in
+  sha1)
+    if ! eval "cd /opt/cloudera/parcel-repo && sha1sum -c \"$PARCEL_NAME.shacheck\""; then
+      echo "SHA1 checksum verification failed"
+      exit 1
+    fi
+    ;;
+  sha256)
+    if ! eval "cd /opt/cloudera/parcel-repo && sha256sum -c \"$PARCEL_NAME.shacheck\""; then
+      echo "SHA256 checksum verification failed"
+      exit 1
+    fi
+    ;;
+esac
 sudo rm "/opt/cloudera/parcel-repo/$PARCEL_NAME.shacheck"
 
 for parcel_path in /opt/cloudera/parcel-repo/*.parcel
